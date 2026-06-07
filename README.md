@@ -49,13 +49,55 @@ http://127.0.0.1:8080/api/v1
 
 ```text
 PORT=8080
+DATA_STORE=file
 DATA_FILE=data/store.json
+AWS_REGION=ap-southeast-1
+AWS_PROFILE=default
+DSQL_HOST=
+DSQL_PORT=5432
+DSQL_DATABASE=postgres
+DSQL_USER=admin
+DSQL_POOL_SIZE=5
+DSQL_TOKEN_EXPIRES_IN=3600
+DSQL_PASSWORD=
 ```
 
 说明：
 
 - `PORT`: API 服务监听端口
+- `DATA_STORE`: 持久化后端，支持 `file` 和 `dsql`。默认 `file`；如果未设置但配置了 `DSQL_HOST`，服务会兼容性地启用 `dsql`。
 - `DATA_FILE`: 本地数据文件路径
+- `DSQL_HOST`: Aurora DSQL endpoint。`DATA_STORE=dsql` 时必填。
+- `AWS_REGION` / `AWS_PROFILE`: 未设置 `DSQL_PASSWORD` 时，用于通过 AWS CLI 生成 Aurora DSQL 临时认证 token。
+- `DSQL_PASSWORD`: 可选。设置后直接作为数据库密码使用；未设置时服务启动和新建连接会调用 `aws dsql generate-db-connect-admin-auth-token`。
+
+### 持久化模式
+
+本项目支持本地文件和 Aurora DSQL 两种持久化方式，便于开源使用者在本地开发和远程部署之间切换。
+
+本地文件模式：
+
+```text
+DATA_STORE=file
+DATA_FILE=data/store.json
+```
+
+Aurora DSQL 模式：
+
+```text
+DATA_STORE=dsql
+AWS_REGION=ap-southeast-1
+AWS_PROFILE=default
+DSQL_HOST=your-cluster-id.dsql.ap-southeast-1.on.aws
+DSQL_PORT=5432
+DSQL_DATABASE=postgres
+DSQL_USER=admin
+DSQL_POOL_SIZE=5
+DSQL_TOKEN_EXPIRES_IN=3600
+DSQL_PASSWORD=
+```
+
+DSQL 模式启动时会自动创建所需表结构，包括 `users`、`user_sessions`、`access_tokens`、`training_records` 和 `store_counters`。如果没有设置 `DSQL_PASSWORD`，运行环境需要已安装并配置 AWS CLI，因为服务会调用 AWS CLI 生成 Aurora DSQL 临时认证 token。
 
 ## 常用命令
 

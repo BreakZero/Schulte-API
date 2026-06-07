@@ -17,7 +17,7 @@ export class SchulteApi {
       const route = url.pathname.slice("/api/v1".length) || "/";
       const query = Object.fromEntries(url.searchParams.entries());
       const payload = parseJson(rawBody);
-      const { data, status } = this.dispatch(method.toUpperCase(), route, query, normalizeHeaders(headers), payload);
+      const { data, status } = await this.dispatch(method.toUpperCase(), route, query, normalizeHeaders(headers), payload);
 
       if (status === 204) return response(status, null);
       return response(status, { data, requestId });
@@ -31,93 +31,93 @@ export class SchulteApi {
     }
   }
 
-  dispatch(method, route, query, headers, payload) {
+  async dispatch(method, route, query, headers, payload) {
     if (method === "POST" && route === "/auth/register") {
-      return { status: 201, data: this.store.register(payload) };
+      return { status: 201, data: await this.store.register(payload) };
     }
     if (method === "POST" && route === "/auth/login") {
-      return { status: 200, data: this.store.login(payload) };
+      return { status: 200, data: await this.store.login(payload) };
     }
     if (method === "POST" && route === "/auth/refresh") {
-      return { status: 200, data: this.store.refresh(payload.refreshToken) };
+      return { status: 200, data: await this.store.refresh(payload.refreshToken) };
     }
     if (method === "POST" && route === "/guest/training-records") {
-      const { record, created } = this.store.createGuestTrainingRecord(payload.guestId, payload);
+      const { record, created } = await this.store.createGuestTrainingRecord(payload.guestId, payload);
       return { status: created ? 201 : 200, data: withoutDeleted(record) };
     }
     if (method === "GET" && route === "/guest/training-records") {
-      return { status: 200, data: this.store.listGuestRecords(query.guestId, query) };
+      return { status: 200, data: await this.store.listGuestRecords(query.guestId, query) };
     }
     if (method === "GET" && route === "/guest/training-summary") {
-      return { status: 200, data: this.store.guestTrainingSummary(query.guestId, query) };
+      return { status: 200, data: await this.store.guestTrainingSummary(query.guestId, query) };
     }
 
-    const { user, accessToken } = this.store.requireUser(headers.authorization);
+    const { user, accessToken } = await this.store.requireUser(headers.authorization);
 
     if (method === "POST" && route === "/auth/logout") {
-      this.store.logout(accessToken, payload.refreshToken);
+      await this.store.logout(accessToken, payload.refreshToken);
       return { status: 204, data: null };
     }
     if (method === "POST" && route === "/auth/logout-all") {
-      this.store.logoutAll(user.id);
+      await this.store.logoutAll(user.id);
       return { status: 204, data: null };
     }
     if (method === "GET" && route === "/me") {
       return { status: 200, data: this.store.publicUser(user) };
     }
     if (method === "GET" && route === "/me/profile") {
-      return { status: 200, data: this.profile(user) };
+      return { status: 200, data: await this.profile(user) };
     }
     if (method === "PATCH" && route === "/me") {
-      return { status: 200, data: this.store.updateUser(user.id, payload) };
+      return { status: 200, data: await this.store.updateUser(user.id, payload) };
     }
     if (method === "POST" && route === "/me/password") {
-      this.store.changePassword(user.id, payload);
+      await this.store.changePassword(user.id, payload);
       return { status: 204, data: null };
     }
     if (method === "DELETE" && route === "/me") {
-      this.store.deleteUser(user.id, payload);
+      await this.store.deleteUser(user.id, payload);
       return { status: 202, data: null };
     }
     if (method === "GET" && route === "/me/sessions") {
-      return { status: 200, data: { items: this.store.listSessions(user.id) } };
+      return { status: 200, data: { items: await this.store.listSessions(user.id) } };
     }
     if (method === "DELETE" && route.startsWith("/me/sessions/")) {
-      this.store.revokeSession(user.id, route.split("/").at(-1));
+      await this.store.revokeSession(user.id, route.split("/").at(-1));
       return { status: 204, data: null };
     }
     if (method === "POST" && route === "/me/training-records") {
-      const { record, created } = this.store.createTrainingRecord(user.id, payload);
+      const { record, created } = await this.store.createTrainingRecord(user.id, payload);
       return { status: created ? 201 : 200, data: withoutDeleted(record) };
     }
     if (method === "POST" && route === "/me/training-records:batchCreate") {
-      return { status: 200, data: this.batchCreate(user.id, payload.items || []) };
+      return { status: 200, data: await this.batchCreate(user.id, payload.items || []) };
     }
     if (method === "GET" && route === "/me/training-records") {
-      return { status: 200, data: this.store.listRecords(user.id, query) };
+      return { status: 200, data: await this.store.listRecords(user.id, query) };
     }
     if (method === "DELETE" && route === "/me/training-records") {
-      this.store.clearRecords(user.id, payload);
+      await this.store.clearRecords(user.id, payload);
       return { status: 202, data: null };
     }
     if (method === "POST" && route === "/me/training-records:associateGuest") {
-      return { status: 200, data: this.store.associateGuestRecords(user.id, payload) };
+      return { status: 200, data: await this.store.associateGuestRecords(user.id, payload) };
     }
     if (method === "GET" && route === "/me/training-summary") {
-      return { status: 200, data: this.store.trainingSummary(user.id, query) };
+      return { status: 200, data: await this.store.trainingSummary(user.id, query) };
     }
     if (method === "GET" && route === "/me/pk-status") {
       return { status: 200, data: this.pkStatus(user) };
     }
     if (method === "GET" && route.startsWith("/me/training-records/")) {
-      return { status: 200, data: this.store.getRecord(user.id, route.split("/").at(-1)) };
+      return { status: 200, data: await this.store.getRecord(user.id, route.split("/").at(-1)) };
     }
 
     throw new ApiError(404, "NOT_FOUND", "接口不存在");
   }
 
-  profile(user) {
-    const trainingSummary = this.store.trainingSummary(user.id, {});
+  async profile(user) {
+    const trainingSummary = await this.store.trainingSummary(user.id, {});
     return {
       account: this.store.publicUser(user),
       trainingSummary,
@@ -149,16 +149,17 @@ export class SchulteApi {
     };
   }
 
-  batchCreate(userId, items) {
+  async batchCreate(userId, items) {
     if (items.length > 100) throw new ApiError(400, "VALIDATION_ERROR", "单次最多同步 100 条训练记录");
     let createdCount = 0;
     let duplicateCount = 0;
-    const results = items.map((item) => {
-      const { record, created } = this.store.createTrainingRecord(userId, item);
+    const results = [];
+    for (const item of items) {
+      const { record, created } = await this.store.createTrainingRecord(userId, item);
       if (created) createdCount += 1;
       else duplicateCount += 1;
-      return { clientRecordId: record.clientRecordId, serverRecordId: record.id, status: created ? "CREATED" : "DUPLICATE" };
-    });
+      results.push({ clientRecordId: record.clientRecordId, serverRecordId: record.id, status: created ? "CREATED" : "DUPLICATE" });
+    }
     return { createdCount, duplicateCount, items: results };
   }
 }
