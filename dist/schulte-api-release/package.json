@@ -1,0 +1,18 @@
+{
+  "name": "schulte-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "RESTful API backend for Schulte grid training user management.",
+  "type": "module",
+  "scripts": {
+    "dev": "node src/server.js",
+    "start": "node src/server.js",
+    "start:dist": "node dist/server.js",
+    "build": "node scripts/build.js",
+    "package:release": "npm run build && node --check dist/server.js && tar -czf dist/schulte-api-release.tar.gz package.json .env.example dist/server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
